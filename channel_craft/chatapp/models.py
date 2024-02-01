@@ -1,32 +1,30 @@
 from django.db import models
 from django.contrib.auth.models import User
-# Create your models here.
+from userapp.models import TimeStampedModel
 
 
-class Room(models.Model):
-    name = models.CharField(max_length=128)
-    online = models.ManyToManyField(User, blank=True)
-
-    def get_online_count(self):
-        return self.online.count()
-
-    def join(self, user):
-        self.online.add(user)
-        self.save()
-
-    def leave(self, user):
-        self.online.remove(user)
-        self.save()
+class Group(TimeStampedModel):
+    name = models.CharField(max_length=255)
+    members = models.ManyToManyField(User, related_name="users_group")
 
     def __str__(self):
-        return f"{self.name} ({self.get_online_count()})"
+        return self.name
 
 
 class Message(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sent_messages", default=None)
     content = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
+    is_group_message = models.BooleanField(default=False)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, blank=True, null=True, )
 
     def __str__(self):
-        return f"{self.user.username}: {self.content} [{self.timestamp}]"
+        return f"{self.user.username}: {self.content} [{self.created_at}]"
+
+
+class Notification(TimeStampedModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.ForeignKey(Message, on_delete=models.CASCADE)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.message}"

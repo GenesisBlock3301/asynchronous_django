@@ -4,13 +4,16 @@
 <head>
     <meta charset="utf-8"/>
     <title>Chat Room</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 </head>
 <body>
 <textarea id="chat-log" cols="100" rows="20"></textarea><br>
 <input id="chat-message-input" type="text" size="100"><br>
 <input id="chat-message-submit" type="button" value="Send">
 {{ room_name|json_script:"room-name" }}
+<div id="user_list">
 
+</div>
 <script>
     const roomName = JSON.parse(document.getElementById('room-name').textContent);
 
@@ -24,8 +27,11 @@
 
     chatSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        console.log("Data type is:", data)
-        document.querySelector('#chat-log').value += (data.message + '\n');
+        let message = data.message ? data.message: '\n'
+        if(data.type === "user_list"){
+            addUserList(data.users)
+        }
+        document.querySelector('#chat-log').value += ( message + '\n');
     };
 
     chatSocket.onclose = function(e) {
@@ -47,6 +53,15 @@
         }));
         messageInputDom.value = '';
     };
+
+    function addUserList(userData) {
+        let userListDiv = $("#user_list")
+        $.each(userData, function (username, email){
+            var userItem = $('<div class="user-item">');
+            userItem.append('<strong>' + username + '</strong>: ' + email);
+            userListDiv.append(userItem);
+        })
+    }
 </script>
 </body>
 </html>
