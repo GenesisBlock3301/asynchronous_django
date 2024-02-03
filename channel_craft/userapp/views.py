@@ -2,22 +2,42 @@ from datetime import timezone
 
 from django.contrib.auth.models import User
 from django.views import View
-from django.views.generic import ListView
+from django.contrib.auth import authenticate, login, logout
+from django.shortcuts import render, redirect, reverse, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect, get_object_or_404
-
 from userapp.models import Friend
 
 
-class UserListView(ListView):
-    model = User
-    paginate_by = 10
-    template_name = 'userapp/user_list.html'
+class LoginView(View):
+    def get(self, request):
+        return render(request, 'userapp/login.html')
 
-    def get_context_data(self, *, object_list=None, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["users"] = User.objects.all()
-        return context
+    def post(self, request):
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect(reverse('user-list'))
+        return redirect('user-login')
+
+
+@login_required
+def logout_view(request):
+    logout(request)
+    return redirect('user-login')
+
+
+class UserListView(View):
+
+    def get(self, request):
+        if not request.user.is_authenticated:
+            return redirect('user-login')
+        template_name = 'userapp/user_list.html'
+        context = {
+            'users': User.objects.all().exclude(username=request.user.username).order_by('username')
+        }
+        return render(request, template_name, context)
 
 
 @login_required
@@ -36,7 +56,7 @@ def make_friend_request(request, friend_id):
         ).first()
         if not existing_user and target_user != request.user:
             Friend.objects.create(users=request.user, friends=target_user)
-            return render(request, 'userapp/friend_request.html', {"friend_request": friend_request})
+            return render(request, 'userapp/friend_request.html', {"friend_request": 'friend_request'})
 
 
 @login_required

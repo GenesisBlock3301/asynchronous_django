@@ -137,3 +137,5 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+LOGIN_URL = 'user-list'
