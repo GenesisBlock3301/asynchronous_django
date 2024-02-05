@@ -26,17 +26,17 @@ class Friend(TimeStampedModel):
     is_accepted = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"user: {self.from_user.username} & friend: {self.to_user.username}"
+        return f"{self.from_user.username} & {self.to_user.username} both are friends"
 
     def save(self, *args, **kwargs):
         existing_friend = Friend.objects.filter(
             Q(
                 Q(from_user=self.from_user) |
                 Q(to_user=self.from_user)
-            ) |
+            ) &
             Q(
                 Q(from_user=self.to_user) |
-                Q(from_user=self.to_user)
+                Q(to_user=self.to_user)
             )
         ).first()
         if existing_friend:

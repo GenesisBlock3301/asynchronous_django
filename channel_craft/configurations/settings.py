@@ -139,3 +139,4 @@ CHANNEL_LAYERS = {
 }
 
 LOGIN_URL = 'user-list'
+ALLOWED_HOSTS = ['*']

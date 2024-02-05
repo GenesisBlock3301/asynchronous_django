@@ -9,13 +9,29 @@
 <button>
     <a href="{% url 'user-logout' %}">Logout</a>
 </button>
+
+<h1>User list</h1>
 <ul>
     {% for user in users %}
         <li>
             {{ user.email }}
-            <a href=" "> Send Request</a>
+            {% if user.sent_requests %}
+                <a href=""> Already sent</a>
+             {% else %}
+                <a href=" ">Send Request</a>
+            {% endif %}
         </li>
     {% endfor %}
 </ul>
+<h1>Get Friend request from others:</h1>
+    <ul>
+        {% for user in get_request_users %}
+            <li>
+                {{ user.from_user.email }}
+                <a href="">Accept</a>
+                <a href="">Decline</a>
+            </li>
+        {% endfor %}
+    </ul>
 </body>
 </html>

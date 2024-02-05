@@ -3,6 +3,8 @@ from asgiref.sync import async_to_sync
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import User
+from django.core import serializers
+from channels.db import database_sync_to_async
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -24,9 +26,20 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
+        # if self.scope['user'].is_anonymous:
+        #     await self.close()
+        previous_messages = ["message1", "message2", "message3"]
+
+        for message in previous_messages:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "chat_message", "message": message}
+            )
+
+        users = await self.get_users()
         # send the user list to the newly joined user, it is worked after successfully connect.
         await self.channel_layer.group_send(
-            self.room_group_name, {'type': 'user_list', 'users': User.objects.all()}
+            self.room_group_name, {'type': 'user_list', 'users': users}
         )
 
     async def disconnect(self, close_code):
@@ -54,6 +67,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def get_name(self):
         return User.objects.all()[0].username
 
+        # Use sync_to_async decorator to make synchronous database query asynchronous
+    @database_sync_to_async
+    def get_users(self):
+        users = User.objects.all()
+        user_list = [{'id': user.id, 'username': user.username} for user in users]
+        return user_list
     # def user_join(self, event):
     #     self.send(text_data=json.dumps(event))
     #

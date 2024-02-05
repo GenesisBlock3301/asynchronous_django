@@ -1,6 +1,7 @@
 from datetime import timezone
 
 from django.contrib.auth.models import User
+from django.db.models import Count, Case, When, F, Value, IntegerField, BooleanField
 from django.views import View
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect, reverse, get_object_or_404
@@ -34,8 +35,28 @@ class UserListView(View):
         if not request.user.is_authenticated:
             return redirect('user-login')
         template_name = 'userapp/user_list.html'
+
+        users = User.objects.\
+            annotate(
+                    sent_requests=Case(
+                        When(
+                            friends__from_user=request.user,
+                            friends__is_accepted=False,
+                            then=Value(True)
+                        ),
+                    ),
+                    ).\
+            order_by('username').\
+            exclude(username=request.user.username).\
+            prefetch_related('friends__from_user', 'from_users__to_user')
+
+        get_request_users = Friend.objects.filter(
+            to_user=request.user,
+            is_accepted=False
+        ).select_related('from_user', 'to_user')
         context = {
-            'users': User.objects.all().exclude(username=request.user.username).order_by('username')
+            'users': users,
+            "get_request_users": get_request_users
         }
         return render(request, template_name, context)
 
