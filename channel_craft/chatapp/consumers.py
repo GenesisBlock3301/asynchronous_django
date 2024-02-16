@@ -1,4 +1,4 @@
-import json
+import json, subprocess
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
@@ -78,3 +78,60 @@ class ChatConsumer(AsyncWebsocketConsumer):
     #
     # def user_leave(self, event):
     #     self.send(text_data=json.dumps(event))
+
+
+class CommandLineConsumer(AsyncWebsocketConsumer):
+
+    async def execute_shell_command(self, command, password=None, input_data=None):
+        if password:
+            command = f'echo "{password}" | sudo -S {command}'
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, universal_newlines=True)
+        while True:
+            stdout = process.stdout.readline().strip()
+            stderr = process.stderr.readline().strip()
+            if stdout:
+                # print("output:", stdout)
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {"type": "chat_message", "message": stdout}
+                )
+            if stderr:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {"type": "chat_message", "message": stderr}
+                )
+
+            if not stdout and not stderr:
+                break
+
+    def __init__(self):
+        self.room_group_name = "command-line"
+        super().__init__()
+
+    async def connect(self):
+        await self.channel_layer.group_add("command-line", self.channel_name)
+        await self.accept()
+
+        await self.execute_shell_command("sudo apt -y upgrade", "bs23")
+
+    async def disconnect(self, close_code):
+        await self.close()
+
+    # Receive message from Websocket
+    async def receive(self, text_data):
+        text_data_json = json.loads(text_data)
+        message = text_data_json["message"]
+
+        previous_messages = ["message1", "message2", "message3"]
+
+        for message in previous_messages:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {"type": "chat_message", "message": message}
+            )
+
+    async def chat_message(self, event):
+        message = event["message"]
+        # send message to websocket
+        await self.send(text_data=json.dumps({"message": message}))

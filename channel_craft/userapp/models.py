@@ -37,7 +37,8 @@ class Friend(TimeStampedModel):
             Q(
                 Q(from_user=self.to_user) |
                 Q(to_user=self.to_user)
-            )
+            ),
+            is_accepted=True
         ).first()
         if existing_friend:
             return ValidationError("Friend already exists")

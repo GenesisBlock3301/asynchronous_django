@@ -25,11 +25,11 @@
 </ul>
 <h1>Get Friend request from others:</h1>
     <ul>
-        {% for user in get_request_users %}
+        {% for user in get_friend_request_users %}
             <li>
                 {{ user.from_user.email }}
-                <a href="">Accept</a>
-                <a href="">Decline</a>
+                <a href="{% url 'friend-request-action' user.from_user.id 'accept' %}">Accept</a>
+                <a href="{% url 'friend-request-action' user.from_user.id 'decline' %}">Decline</a>
             </li>
         {% endfor %}
     </ul>

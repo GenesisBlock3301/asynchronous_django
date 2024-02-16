@@ -6,5 +6,18 @@
 </head>
 <body>
 <h1>This is friend list</h1>
+<ul>
+    {% for friend in friend_list %}
+        {% if request.user == friend.from_user %}
+        <li>
+            {{ friend.to_user.email }}
+        </li>
+            {% elif request.user == friend.to_user %}
+            <li>
+                {{ friend.from_user.email }}
+            </li>
+        {% endif %}
+    {% endfor %}
+</ul>
 </body>
 </html>

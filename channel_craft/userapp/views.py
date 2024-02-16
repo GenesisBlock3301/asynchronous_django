@@ -1,7 +1,7 @@
-from datetime import timezone
+from django.utils import timezone
 
 from django.contrib.auth.models import User
-from django.db.models import Count, Case, When, F, Value, IntegerField, BooleanField
+from django.db.models import Count, Case, When, F, Value, IntegerField, BooleanField, Q
 from django.views import View
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect, reverse, get_object_or_404
@@ -50,20 +50,23 @@ class UserListView(View):
             exclude(username=request.user.username).\
             prefetch_related('friends__from_user', 'from_users__to_user')
 
-        get_request_users = Friend.objects.filter(
-            to_user=request.user,
+        get_friend_request_users = Friend.objects.filter(
+            Q(from_user=request.user) | Q(to_user=request.user),
             is_accepted=False
         ).select_related('from_user', 'to_user')
         context = {
             'users': users,
-            "get_request_users": get_request_users
+            "get_friend_request_users": get_friend_request_users
         }
         return render(request, template_name, context)
 
 
 @login_required
 def friends_list(request):
-    friend_list = request.user.friends.all()
+    friend_list = Friend.objects.filter(
+        Q(from_user=request.user) | Q(to_user=request.user),
+        is_accepted=True
+    )
     return render(request, 'userapp/friend_list.html', {'friend_list': friend_list})
 
 
@@ -81,24 +84,24 @@ def make_friend_request(request, friend_id):
 
 
 @login_required
-def accept_friend_request(request, friend_request_id):
-    friend_request = Friend.objects.get(
-        id=friend_request_id,
-        friends=request.user,
-        accepted=False
-    )
-    friend_request.accepted = True
-    friend_request.created_at = timezone.now()
-    friend_request.save()
-    return
-
-
-@login_required
-def decline_friend_request(request, friend_request_id):
-    friend_request = Friend.objects.get(
-        id=friend_request_id,
-        friends=request.user,
-        accepted=False
-    )
-    friend_request.delete()
-    return
+def friend_request_action(request, friend_request_id, action_type):
+    if action_type == 'accept':
+        try:
+            friend_request = get_object_or_404(Friend, from_user__id=friend_request_id, to_user=request.user,
+                                               is_accepted=False)
+            friend_request.is_accepted = True
+            friend_request.created_at = timezone.now()
+            friend_request.save()
+            return redirect('friend-list')
+        except Exception as e:
+            print(str(e))
+            return redirect('user-list')
+    else:
+        try:
+            friend_request = get_object_or_404(Friend, from_user__id=friend_request_id, to_user=request.user,
+                                               is_accepted=False)
+            friend_request.delete()
+            return redirect('user-list')
+        except Exception as e:
+            print(str(e))
+            return redirect('user-list')
