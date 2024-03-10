@@ -1,7 +1,7 @@
 from django.utils import timezone
 
 from django.contrib.auth.models import User
-from django.db.models import Count, Case, When, F, Value, IntegerField, BooleanField, Q
+from django.db.models import Count, Case, When, F, Value, IntegerField, BooleanField, Q, OuterRef, Subquery
 from django.views import View
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect, reverse, get_object_or_404
@@ -36,24 +36,17 @@ class UserListView(View):
             return redirect('user-login')
         template_name = 'userapp/user_list.html'
 
-        users = User.objects.\
-            annotate(
-                    sent_requests=Case(
-                        When(
-                            friends__from_user=request.user,
-                            friends__is_accepted=False,
-                            then=Value(True)
-                        ),
-                    ),
-                    ).\
-            order_by('username').\
-            exclude(username=request.user.username).\
-            prefetch_related('friends__from_user', 'from_users__to_user')
-
+        subquery = Friend.objects.annotate(
+            is_friend=Q(from_user=request.user, to_user=OuterRef('pk'), is_accepted=True) |
+                      Q(from_user=OuterRef('pk'), to_user=request.user, is_accepted=True)
+        ).values('id')[:1]
+        users = User.objects.annotate(
+            is_friend=Subquery(subquery)
+        ).filter(is_friend=True).exclude(username=request.user.username).order_by('username')
         get_friend_request_users = Friend.objects.filter(
             Q(from_user=request.user) | Q(to_user=request.user),
             is_accepted=False
-        ).select_related('from_user', 'to_user')
+        ).select_related('from_user', 'to_user').exclude(from_user=request.user)
         context = {
             'users': users,
             "get_friend_request_users": get_friend_request_users
