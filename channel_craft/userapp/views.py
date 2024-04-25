@@ -47,9 +47,15 @@ class UserListView(View):
             Q(from_user=request.user) | Q(to_user=request.user),
             is_accepted=False
         ).select_related('from_user', 'to_user').exclude(from_user=request.user)
+        test_dict = dict()
+        test_dict[1] = "one"
+        test_dict[2] = "two"
+        test_dict[3] = "three"
         context = {
             'users': users,
-            "get_friend_request_users": get_friend_request_users
+            "get_friend_request_users": get_friend_request_users,
+            "test_dict": test_dict,
+            "vals": [1,2,3,4,5]
         }
         return render(request, template_name, context)
 

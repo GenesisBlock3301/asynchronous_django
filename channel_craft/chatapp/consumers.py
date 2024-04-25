@@ -1,10 +1,7 @@
-import json, subprocess
-from asgiref.sync import async_to_sync
+import json, subprocess, logging
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import User
-from django.core import serializers
-from channels.db import database_sync_to_async
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -19,31 +16,32 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     # accept connection
     async def connect(self):
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f"chat_{self.room_name}"
-        self.user = self.scope['user']
-        # self.username = await database_sync_to_async(self.get_name)()
-        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
-        await self.accept()
+        try:
+            self.room_name = self.scope['url_route']['kwargs']['room_name']
+            self.room_group_name = f"chat_{self.room_name}"
+            self.user = self.scope['user']
+            await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+            await self.accept()
+            previous_messages = ["message1", "message2", "message3"]
 
-        # if self.scope['user'].is_anonymous:
-        #     await self.close()
-        previous_messages = ["message1", "message2", "message3"]
+            for message in previous_messages:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {"type": "chat_message", "message": message}
+                )
 
-        for message in previous_messages:
+            users = await self.get_users()
+            logging.info("Connected successfully")
+            # send the user list to the newly joined user, it is worked after successfully connect.
             await self.channel_layer.group_send(
-                self.room_group_name,
-                {"type": "chat_message", "message": message}
+                self.room_group_name, {'type': 'user_list', 'users': users}
             )
-
-        users = await self.get_users()
-        # send the user list to the newly joined user, it is worked after successfully connect.
-        await self.channel_layer.group_send(
-            self.room_group_name, {'type': 'user_list', 'users': users}
-        )
+        except Exception as e:
+            logging.error(e)
+            pass
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+        pass
 
     # Receive message from Websocket
     async def receive(self, text_data):
@@ -73,11 +71,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         users = User.objects.all()
         user_list = [{'id': user.id, 'username': user.username} for user in users]
         return user_list
-    # def user_join(self, event):
-    #     self.send(text_data=json.dumps(event))
-    #
-    # def user_leave(self, event):
-    #     self.send(text_data=json.dumps(event))
 
 
 class CommandLineConsumer(AsyncWebsocketConsumer):

@@ -1,0 +1,22 @@
+version: "3.8"  # Updated to a specific version for clarity and compatibility
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile  # Assuming your Dockerfile is in the root of your project
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app  # This line mounts your current directory to /app in the container, ensure this is what you want
+    depends_on:
+      - redis
+  redis:
+    build:
+      context: .
+      dockerfile: redis.dockerfile
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+

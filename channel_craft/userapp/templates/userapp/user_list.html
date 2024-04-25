@@ -34,5 +34,14 @@
             </li>
         {% endfor %}
     </ul>
+<ul>
+{% for i in vals %}
+    {% for key, val in test_dict.items %}
+        {% if key == i %}
+            <li>{{ val }}</li>
+        {% endif %}
+    {% endfor %}
+{% endfor %}
+</ul>
 </body>
 </html>

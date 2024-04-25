@@ -1,0 +1,6 @@
+channels==4.0.0
+channels-redis==4.2.0
+daphne==4.0.0
+Django==5.0.1
+six==1.16.0
+sqlparse==0.4.4
