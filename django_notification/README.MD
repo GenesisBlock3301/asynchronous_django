@@ -67,5 +67,5 @@ Issue can be faced:
 
 - Make sure redis service is running
 - Make suer in /etc/hosts redis host is exist so use `ping redis` command. If not exist use `127.0.0.0.1    redis`.
-- Make sure channel configuration specially asgi.py configuration.
+- Make sure channel configuration. Specially asgi.py configuration.
 - Make sure django setting's channel layer configuration & ASGI server config as well.
